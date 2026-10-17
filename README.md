@@ -19,6 +19,18 @@ LLM generation service for ML pipelines, built on
 - **Stats** (`LLMStats`, `LLMStatsStore`): counters drained by one thread into a shared SQLite store, one row
   set per serving job.
 
+Every part imports from the top level: `from ai_llm import LLMServer, ServicePromptConsumer, ...`. The project
+writes the router and collector threads between the server's queues; `AGENTS.md` lists the queues, signatures,
+assembly order and the rules to keep.
+
+## Example
+
+```bash
+python examples/fake_engine/service.py
+```
+
+The server, consumer and stats with an echo model in a stand-in GPU task; CPU only, no model download.
+
 ## License
 
 Apache-2.0
