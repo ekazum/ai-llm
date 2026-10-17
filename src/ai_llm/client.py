@@ -8,7 +8,7 @@ connection in completion order and are read with ``receive``.
 import logging
 import time
 from collections import deque
-from multiprocessing.connection import Client
+from multiprocessing.connection import Client, Connection
 
 from ai_llm.config import LLMBaseConfig
 
@@ -31,7 +31,7 @@ class LLMBaseClient:
         """
         # Answers produced on this side, waiting to be received.
         self._ready: deque = deque()
-        self._conn = None
+        self._conn: Connection | None = None
         if host:
             port = config.client_port(server_job)
             deadline = time.monotonic() + _CONNECT_RETRY_SECONDS
