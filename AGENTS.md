@@ -4,7 +4,7 @@ ai-llm gives an LLM generation service: a server that consumers and GPU tasks co
 prompts through vLLM, clients, and a stats store. A project builds a service by subclassing the config, writing two
 threads that move work between the server's queues, and calling the clients.
 
-Install: `pip install "ai-llm[vllm] @ git+https://github.com/ekazum/ai-llm.git@v0.1.2"` (`[vllm]` only where the
+Install: `pip install "ai-llm[vllm] @ git+https://github.com/ekazum/ai-llm.git@v0.1.3"` (`[vllm]` only where the
 engine runs). Everything below imports from the top level: `from ai_llm import ...`.
 
 ## What ai-llm provides, what the project writes
