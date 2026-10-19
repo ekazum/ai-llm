@@ -86,11 +86,12 @@ The serving process (see `examples/fake_engine/service.py`):
 - `examples/fake_engine/service.py` — the server, the router and collector, stats, and a consumer, with an echo model
   in a stand-in GPU task; CPU only, no model download. `python examples/fake_engine/service.py`.
 
-## The four repos
+## The five repos
 
 | Repo | Gives | Depends on |
 |---|---|---|
-| [ai-runtime](https://github.com/ekazum/ai-runtime) | threads, `SHUTDOWN_SENTINEL`, `Pipeline`, GPU batching, service supervision, SQLite stores, checkpoint managers, `YamlConfig` | standard library; `[torch]`, `[config]` |
+| [ai-runtime](https://github.com/ekazum/ai-runtime) | threads, `SHUTDOWN_SENTINEL`, `ThreadStages`, GPU batching, service supervision, SQLite stores, checkpoint managers, `YamlConfig`, logging | standard library; `[torch]`, `[config]` |
 | ai-llm | the LLM generation service above | ai-runtime |
 | [ai-ui](https://github.com/ekazum/ai-ui) | a Flask web shell and a runs dashboard over a SQLite runs DB | ai-runtime |
-| [rl-core](https://github.com/ekazum/rl-core) | RL threads and data types: PPO, prioritized-replay client threads, Q-network inference, checkpoint writer | ai-runtime |
+| [rl-core](https://github.com/ekazum/rl-core) | RL threads and data types: PPO, prioritized replay, Q-network inference, DQN learner, checkpoint writer | ai-runtime |
+| [ai-pipeline](https://github.com/ekazum/ai-pipeline) | data preparation stages | ai-runtime; `[embed]`, `[llm]`, `[reduce]` |
