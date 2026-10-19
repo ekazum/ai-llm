@@ -7,7 +7,7 @@ LLM generation service for ML pipelines, built on
 
 - **Config** (`ai_llm.config.LLMBaseConfig`): model, generation, GPU batching and ports, loaded from YAML; a
   project subclasses it with its own fields.
-- **Engine** (`ai_llm.engine.LLMEngine`): one vLLM engine — load tensor-parallel, `chat`, `generate` from token
+- **Engine** (`ai_llm.engine.LLMEngine`): one vLLM engine — load tensor-parallel, `chat`, `token_counts`, `generate` from token
   ids under per-prompt budgets with logprob-derived `0.dddd` values, and `unload`.
 - **GPU process** (`LLMGPUService`, `LLMGPUProcessor`, `LLMGPUWorker`): processors tokenize under the chat
   template and the worker generates in weight-budgeted batches through ai-runtime's `GpuBatchStage`; `run` keeps

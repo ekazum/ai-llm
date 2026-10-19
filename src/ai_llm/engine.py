@@ -74,6 +74,13 @@ class LLMEngine:
             )
         return [output.outputs[0].text for output in outputs]
 
+    def token_counts(self, texts: list[str]) -> list[int]:
+        """Tokens in each text under the model's tokenizer, special tokens excluded."""
+        if self._llm is None:
+            raise RuntimeError(f"{type(self).__name__}: model not loaded.")
+        encoded = self._llm.get_tokenizer()(texts, add_special_tokens=False)
+        return [len(ids) for ids in encoded["input_ids"]]
+
     def _digit_expectation(self, gen: Any, tokenizer: Any) -> tuple[float, ...]:
         """Logprob-derived values of one generated answer, ``n_numbers`` of them.
 

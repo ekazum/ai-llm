@@ -12,7 +12,7 @@ from .service_prompt_consumer import ServicePromptConsumer
 from .stats import LLMStats
 from .stats_store import LLMStatsStore
 
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 
 __all__ = [
     "LLMBaseClient", "LLMBaseConfig", "LLMEngine", "LLMGPUProcessor", "LLMGPUService",
