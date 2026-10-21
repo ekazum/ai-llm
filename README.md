@@ -14,14 +14,21 @@ LLM generation service for ML pipelines, built on
   a socket to the serving task and redials when it goes.
 - **Server** (`ai_llm.server.LLMServer`): the serving task's listener — GPU tasks and consumers connect on their
   own ports; prompts go to the GPU task with the smallest backlog, answers back to whoever asked.
-- **Clients** (`LLMBaseClient`, `ServicePromptConsumer`, `PromptConsumer`): send prompts, receive answers in
-  completion order; prompt in, text out, with a timeout on a silent service.
+- **Serving** (`LLMService`, `LLMProcessor`, `LLMCollector`): the serving manager with its own engine; the
+  processor answers from the cache or routes a miss to the GPU, the collector keeps finished answers and sends
+  them back.
+- **Cache** (`AnswerCache`): a protocol — `lookup(key)`, `update(key, answer)`, `flush()`. The key is any tuple
+  the project chooses and the project supplies the implementation; a LangChain `BaseCache` fits behind a short
+  adapter.
+- **Clients** (`LLMBaseClient`, `LLMCachedClient`, `ServicePromptConsumer`, `PromptConsumer`): send prompts,
+  receive answers in completion order; `LLMCachedClient` answers from its own cache before asking the service;
+  prompt in, text out, with a timeout on a silent service.
 - **Stats** (`LLMStats`, `LLMStatsStore`): counters drained by one thread into a shared SQLite store, one row
   set per serving job.
 
-Every part imports from the top level: `from ai_llm import LLMServer, ServicePromptConsumer, ...`. The project
-writes the router and collector threads between the server's queues; `AGENTS.md` lists the queues, signatures,
-assembly order and the rules to keep.
+Every part imports from the top level: `from ai_llm import LLMService, AnswerCache, ...`. The project supplies
+the question, the cache and the key; `AGENTS.md` lists the queues, signatures, assembly order and the rules to
+keep.
 
 ## Example
 

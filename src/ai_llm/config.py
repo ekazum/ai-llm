@@ -40,6 +40,12 @@ class LLMBaseConfig(YamlConfig):
     LLM_CLIENT_PORT: int = 5555
     # GPU-task port base + server job id % 1000.
     LLM_GPU_PORT: int = 5556
+    # Max requests queued from the consumers to the processor.
+    LLM_REQUEST_QUEUE_MAXSIZE: int = 16384
+    # Threads answering requests from the cache or routing them on.
+    LLM_PROCESSOR_THREADS: int = 4
+    # Where the service writes its counters.
+    LLM_STATS_PATH: str = "data/stats/llm_service.json"
 
     @field_validator("LLM_MODEL")
     @classmethod
@@ -50,7 +56,7 @@ class LLMBaseConfig(YamlConfig):
 
     @field_validator("LLM_MAX_TOKENS", "LLM_LOGPROBS_TOPK", "LLM_MAX_MODEL_LEN",
                      "LLM_GPU_SORT_WINDOW_SIZE", "LLM_MAX_TOKENS_PER_BATCH",
-                     "LLM_GPU_MAX_IN_FLIGHT")
+                     "LLM_GPU_MAX_IN_FLIGHT", "LLM_REQUEST_QUEUE_MAXSIZE")
     @classmethod
     def _positive(cls, value: int) -> int:
         if value < 1:
