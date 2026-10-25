@@ -1,11 +1,11 @@
 # ai-llm — notes for AI coding tools
 
 ai-llm gives an LLM generation service: a server that consumers and GPU tasks connect to, a GPU process that batches
-prompts through vLLM, the processor and collector threads between them, an answer-cache protocol, clients, and a
-stats store. A project builds a service by subclassing the config, supplying a question and a cache, and calling the
-clients.
+prompts through vLLM, the processor and collector threads between them, an answer-cache protocol with npy/SQLite
+stores, clients, and a stats store. A project builds a service by subclassing the config, supplying a question and a
+cache, and calling the clients.
 
-Install: `pip install "ai-llm[vllm] @ git+https://github.com/ekazum/ai-llm.git@v0.2.0"` (`[vllm]` only where the
+Install: `pip install "ai-llm[vllm] @ git+https://github.com/ekazum/ai-llm.git@v0.3.0"` (`[vllm]` only where the
 engine runs). Everything below imports from the top level: `from ai_llm import ...`.
 
 ## What ai-llm provides, what the project writes
@@ -19,6 +19,7 @@ engine runs). Everything below imports from the top level: `from ai_llm import .
 | GPU side | `LLMGPUService`, `LLMGPUProcessor`, `LLMGPUWorker`, `LLMEngine` | — |
 | Answers back | `LLMCollector`: `done_queue` → cache `update` and one `response_queue` item per key | — |
 | Cache | `AnswerCache` (protocol) | the implementation and the key |
+| Cache stores | `CacheSchema`, `ShardCache`, `SqliteAnswerCache`, `CacheBuilder` | the schema and the `meta` rows |
 | Clients | `LLMBaseClient`, `LLMCachedClient`, `ServicePromptConsumer`, `PromptConsumer` (protocol) | a subclass that opens its cache, if any |
 | Stats | `LLMStats`, `LLMStatsStore` | — |
 
@@ -50,6 +51,15 @@ class AnswerCache(Protocol):
     def lookup(self, key: tuple): ...                   # the answer, or None
     def update(self, key: tuple, answer) -> bool: ...   # False: this cache does not keep the key
     def flush(self) -> None: ...
+CacheSchema(table, keys, text, floats=(), key_shard="keys_", text_shard="answers_", float_shard="lp_")
+    .columns .create_sql() .select_sql() .insert_sql() .count_sql()
+ShardCache(schema, directory, source="local", flush_every=4096, flush_seconds=30.0)   # meets AnswerCache
+    .counters()                          # hits, misses, writes, live
+SqliteAnswerCache(schema, path, expected_meta)                                       # meets AnswerCache
+    .close()  SqliteAnswerCache.check_store(path, expected_meta)
+CacheBuilder(schema, path, shard_dirs, hot_dir, expected_meta, stats_path=None)
+    .run()                               # every shard into a checked copy, then os.replace
+    .fold_hot()                          # hot_dir shards into the store in place, then removes them
 LLMService(config, question, cache=None, *, n_gpus=None)
     .start() -> host  .stop()            # start loads the engine and blocks until it can generate
 LLMProcessor(question, request_queue=None)
@@ -103,6 +113,10 @@ The same parts wired by hand (`examples/fake_engine/service.py` does this with i
   for it does not change.
 - A LangChain `BaseCache` meets `AnswerCache` through an adapter: `lookup(str(key), model)`, and the answer stored
   as one `Generation` whose text is the serialized answer.
+- The cache stores take keys of the schema's width only; any other key misses and is not kept. A shard is three
+  files, `<key_shard>shard<name>.npy` and its two siblings, and `fold_hot` removes all three once the rows commit.
+- `CacheBuilder` is the only writer of the SQLite file and refuses a store whose `meta` differs; `run` leaves a
+  `.tmp` copy behind when it refuses, to move away by hand.
 - An answer is `(text, *values)`; `ServicePromptConsumer` returns `answer[0]`. The collector passes it through.
 - The router answers everything that is not a prompt; an unanswered key leaves its consumer waiting until
   `GENERATE_TIMEOUT` (900 s).
