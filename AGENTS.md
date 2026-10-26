@@ -5,7 +5,7 @@ prompts through vLLM, the processor and collector threads between them, an answe
 stores, clients, and a stats store. A project builds a service by subclassing the config, supplying a question and a
 cache, and calling the clients.
 
-Install: `pip install "ai-llm[vllm] @ git+https://github.com/ekazum/ai-llm.git@v0.3.1"` (`[vllm]` only where the
+Install: `pip install "ai-llm[vllm] @ git+https://github.com/ekazum/ai-llm.git@v0.3.2"` (`[vllm]` only where the
 engine runs). Everything below imports from the top level: `from ai_llm import ...`.
 
 ## What ai-llm provides, what the project writes
@@ -118,8 +118,9 @@ The same parts wired by hand (`examples/fake_engine/service.py` does this with i
 - `CacheBuilder` is the only writer of the SQLite file and refuses a store whose `meta` differs; `run` leaves a
   `.tmp` copy behind when it refuses, to move away by hand.
 - An answer is `(text, *values)`; `ServicePromptConsumer` returns `answer[0]`. The collector passes it through.
-- A value is the last `n_numbers` numbers of the answer, each P(1) + P(0) * d0 over its leading `0`/`1`; a written
-  `1.` costs one more 4-token generate call that forces `0.` to read d0. `nan` where a number is absent.
+- A value is the last number on each of the answer's last `n_numbers` non-empty lines, each P(1) + P(0) * d0 over
+  its leading `0`/`1`; a written `1.` costs one more 4-token generate call that forces `0.` to read d0. All `nan` when
+  one of those lines has no number, as in an answer cut off by its budget.
 - The router answers everything that is not a prompt; an unanswered key leaves its consumer waiting until
   `GENERATE_TIMEOUT` (900 s).
 - Set `ready` after the work a consumer depends on is done; consumers block until the client port opens.

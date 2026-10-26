@@ -82,18 +82,37 @@ class LLMEngine:
         encoded = self._llm.get_tokenizer()(texts, add_special_tokens=False)
         return [len(ids) for ids in encoded["input_ids"]]
 
-    def _numbers(self, pieces: list[str]) -> list[tuple[int, list[int]]]:
-        """``(leading position, decimal positions)`` of the last ``n_numbers``
-        numbers: a digit, ``.``, then up to ``_DECIMALS`` digits."""
+    @staticmethod
+    def _pieces(gen: Any, tokenizer: Any) -> list[str]:
+        """Each generated token's text; special tokens as ``""``."""
+        special = set(tokenizer.all_special_ids)
+        return ["" if tid in special else tokenizer.decode([tid])
+                for tid in gen.token_ids]
+
+    def _numbers(self, pieces: list[str]
+                 ) -> "list[tuple[int, list[int]] | None]":
+        """``(leading position, decimal positions)`` of the last number on each
+        of the answer's last ``n_numbers`` non-empty lines; all ``None`` when
+        one of those lines has none or the answer has fewer lines. A number is
+        a digit, ``.``, then up to ``_DECIMALS`` digits."""
         cls = type(self)
-        numbers = []
+        lines = list(itertools.accumulate(
+            (piece.count("\n") for piece in pieces), initial=0))[:-1]
+        tail = sorted({line for line, piece in zip(lines, pieces)
+                       if piece.strip()})[-self._n_numbers:]
+        if len(tail) < self._n_numbers:
+            return [None] * self._n_numbers
+        last: dict[int, tuple[int, list[int]]] = {}
         for i in range(len(pieces) - 2):
-            if pieces[i].strip() in cls._DIGITS and pieces[i + 1] == ".":
+            if (lines[i] in tail and pieces[i].strip() in cls._DIGITS
+                    and pieces[i + 1] == "."):
                 positions = [j for j in range(i + 2, i + 2 + cls._DECIMALS)
                              if j < len(pieces) and pieces[j] in cls._DIGITS]
                 if positions:
-                    numbers.append((i, positions))
-        return numbers[-self._n_numbers:]
+                    last[lines[i]] = (i, positions)
+        if len(last) < self._n_numbers:
+            return [None] * self._n_numbers
+        return [last[line] for line in tail]
 
     def _digit_probs(self, alternatives: dict, tokenizer: Any) -> dict[int, float]:
         """Probability per single digit among one position's top-k alternatives."""
@@ -121,9 +140,9 @@ class LLMEngine:
         """Leading positions written as ``1``; their ``0.`` branch is not in the answer."""
         if gen.logprobs is None:
             return []
-        pieces = [tokenizer.decode([tid]) for tid in gen.token_ids]
-        return [lead for lead, _ in self._numbers(pieces)
-                if pieces[lead].strip() == "1"]
+        pieces = self._pieces(gen, tokenizer)
+        return [number[0] for number in self._numbers(pieces)
+                if number is not None and pieces[number[0]].strip() == "1"]
 
     def _digit_expectation(self, gen: Any, tokenizer: Any,
                            zero_branch: "dict[int, float] | None" = None
@@ -132,14 +151,19 @@ class LLMEngine:
 
         Value = P(1) + P(0) * d0: P over the leading 0/1, d0 the ``0.`` branch's
         expected decimals — the answer's own, or ``zero_branch[lead]`` for a
-        written ``1``. ``nan`` where a number is absent or not 0/1-led.
+        written ``1``. All ``nan`` when the last lines do not hold the numbers;
+        ``nan`` for a number not 0/1-led.
         """
         if gen.logprobs is None:
             return (math.nan,) * self._n_numbers
         zero_branch = zero_branch or {}
-        pieces = [tokenizer.decode([tid]) for tid in gen.token_ids]
+        pieces = self._pieces(gen, tokenizer)
         values = []
-        for lead, positions in self._numbers(pieces):
+        for number in self._numbers(pieces):
+            if number is None:
+                values.append(math.nan)
+                continue
+            lead, positions = number
             written = pieces[lead].strip()
             if written == "0":
                 d0 = self._decimals(gen.logprobs, tokenizer, positions)
@@ -151,8 +175,6 @@ class LLMEngine:
             probs = self._digit_probs(gen.logprobs[lead], tokenizer)
             p1 = probs.get(1, 0.0) / (probs.get(0, 0.0) + probs.get(1, 0.0))
             values.append(p1 + (1.0 - p1) * d0)
-        while len(values) < self._n_numbers:
-            values.append(math.nan)
         return tuple(values)
 
     def generate(self, token_ids: list[list[int]],
