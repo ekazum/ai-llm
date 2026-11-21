@@ -21,7 +21,7 @@ from .sqlite_answer_cache import SqliteAnswerCache
 from .stats import LLMStats
 from .stats_store import LLMStatsStore
 
-__version__ = "0.3.3"
+__version__ = "0.3.4"
 
 __all__ = [
     "AnswerCache", "CacheBuilder", "CacheSchema", "LLMBaseClient", "LLMBaseConfig",

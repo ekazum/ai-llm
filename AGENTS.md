@@ -5,7 +5,7 @@ prompts through vLLM, the processor and collector threads between them, an answe
 stores, clients, and a stats store. A project builds a service by subclassing the config, supplying a question and a
 cache, and calling the clients.
 
-Install: `pip install "ai-llm[vllm] @ git+https://github.com/ekazum/ai-llm.git@v0.3.3"` (`[vllm]` only where the
+Install: `pip install "ai-llm[vllm] @ git+https://github.com/ekazum/ai-llm.git@v0.3.4"` (`[vllm]` only where the
 engine runs). Everything below imports from the top level: `from ai_llm import ...`.
 
 ## What ai-llm provides, what the project writes
