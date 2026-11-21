@@ -5,7 +5,7 @@ prompts through vLLM, the processor and collector threads between them, an answe
 stores, clients, and a stats store. A project builds a service by subclassing the config, supplying a question and a
 cache, and calling the clients.
 
-Install: `pip install "ai-llm[vllm] @ git+https://github.com/ekazum/ai-llm.git@v0.3.2"` (`[vllm]` only where the
+Install: `pip install "ai-llm[vllm] @ git+https://github.com/ekazum/ai-llm.git@v0.3.3"` (`[vllm]` only where the
 engine runs). Everything below imports from the top level: `from ai_llm import ...`.
 
 ## What ai-llm provides, what the project writes
@@ -47,15 +47,16 @@ Every connection starts with `("hello", "consumer")` or `("hello", "gpu")`. A GP
 LLMBaseConfig.from_yaml(path)            # YamlConfig: frozen, extra fields forbidden
     .client_port(job_id=None) .gpu_port(job_id=None)
     # also LLM_REQUEST_QUEUE_MAXSIZE, LLM_PROCESSOR_THREADS, LLM_STATS_PATH
-class AnswerCache(Protocol):
-    def lookup(self, key: tuple): ...                   # the answer, or None
-    def update(self, key: tuple, answer) -> bool: ...   # False: this cache does not keep the key
+class AnswerCache(Protocol[AnswerT]):                   # bare AnswerCache = any answer
+    def lookup(self, key: tuple) -> AnswerT | None: ... # the answer, or None
+    def update(self, key: tuple, answer: AnswerT) -> bool: ...  # False: this cache does not keep the key
     def flush(self) -> None: ...
 CacheSchema(table, keys, text, floats=(), key_shard="keys_", text_shard="answers_", float_shard="lp_")
     .columns .create_sql() .select_sql() .insert_sql() .count_sql()
-ShardCache(schema, directory, source="local", flush_every=4096, flush_seconds=30.0)   # meets AnswerCache
+# The stores take the answer tuple as their parameter, e.g. class MyCache(ShardCache[tuple[str, float]])
+ShardCache(schema, directory, source="local", flush_every=4096, flush_seconds=30.0)   # AnswerCache[TupleAnswerT]
     .counters()                          # hits, misses, writes, live
-SqliteAnswerCache(schema, path, expected_meta)                                       # meets AnswerCache
+SqliteAnswerCache(schema, path, expected_meta)                                       # AnswerCache[TupleAnswerT]
     .close()  SqliteAnswerCache.check_store(path, expected_meta)
 CacheBuilder(schema, path, shard_dirs, hot_dir, expected_meta, stats_path=None)
     .run()                               # every shard into a checked copy, then os.replace

@@ -19,9 +19,10 @@ LLM generation service for ML pipelines, built on
   them back.
 - **Cache** (`AnswerCache`): a protocol — `lookup(key)`, `update(key, answer)`, `flush()`. The key is any tuple
   the project chooses and the project supplies the implementation; a LangChain `BaseCache` fits behind a short
-  adapter.
+  adapter. The answer type is the protocol's parameter (`AnswerCache[tuple[str, float]]`).
 - **Cache stores** (`CacheSchema`, `ShardCache`, `SqliteAnswerCache`, `CacheBuilder`): one implementation of the
-  protocol over integer keys and `(text, *floats)` answers. `ShardCache` keeps a run's answers and flushes them as
+  protocol over integer keys and `(text, *floats)` answers, typed by the store's parameter
+  (`ShardCache[tuple[str, float, float]]`). `ShardCache` keeps a run's answers and flushes them as
   npy shards, `CacheBuilder` folds shards into one SQLite file, and `SqliteAnswerCache` reads that file without
   locking. The schema names the table, the columns and the shard prefixes.
 - **Clients** (`LLMBaseClient`, `LLMCachedClient`, `ServicePromptConsumer`, `PromptConsumer`): send prompts,

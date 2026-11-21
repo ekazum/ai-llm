@@ -2,7 +2,9 @@
 
 The SQLite file a ``CacheBuilder`` wrote, opened ``immutable=1`` so any
 number of processes may read it without locking. Its ``meta`` rows must
-equal the ones the project expects, or the store is refused.
+equal the ones the project expects, or the store is refused. The answer's
+exact tuple type is the class parameter:
+``SqliteAnswerCache[tuple[str, float, float]]``.
 """
 
 import logging
@@ -11,14 +13,15 @@ import sqlite3
 import threading
 from contextlib import closing
 from pathlib import Path
+from typing import Generic, cast
 
-from .answer_cache import AnswerCache
+from .answer_cache import AnswerCache, TupleAnswerT
 from .cache_schema import CacheSchema
 
 logger = logging.getLogger(__name__)
 
 
-class SqliteAnswerCache(AnswerCache):
+class SqliteAnswerCache(AnswerCache[TupleAnswerT], Generic[TupleAnswerT]):
     """Answers the build folded in; never written to."""
 
     def __init__(self, schema: CacheSchema, path: str | Path,
@@ -76,7 +79,7 @@ class SqliteAnswerCache(AnswerCache):
             db.close()
             self._local.db = None
 
-    def lookup(self, key: tuple) -> tuple | None:
+    def lookup(self, key: tuple) -> TupleAnswerT | None:
         """``AnswerCache.lookup``: ``(text, *floats)``, or ``None``; a key of
         another width is never held."""
         if len(key) != self._width:
@@ -99,11 +102,12 @@ class SqliteAnswerCache(AnswerCache):
             row = db.execute(self._select, key).fetchone()
         if row is None:
             return None
-        # NULL (no number in the answer) reads back as nan.
-        return row[0], *(math.nan if value is None else value
-                         for value in row[1:])
+        # NULL (no number in the answer) reads back as nan. cast: the row is
+        # the schema's (text, *floats), the shape the class parameter names.
+        return cast(TupleAnswerT, (row[0], *(math.nan if value is None else value
+                                             for value in row[1:])))
 
-    def update(self, key: tuple, answer: tuple) -> bool:
+    def update(self, key: tuple, answer: TupleAnswerT) -> bool:
         """``AnswerCache.update``: the built store is never written here."""
         return False
 

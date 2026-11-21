@@ -2,22 +2,24 @@
 
 An answer is ``(text, *floats)`` in ``CacheSchema`` order, kept by a key of
 the schema's width. Each flush writes one keys, texts and floats shard that
-a ``CacheBuilder`` later folds into the store.
+a ``CacheBuilder`` later folds into the store. The answer's exact tuple type
+is the class parameter: ``ShardCache[tuple[str, float, float]]``.
 """
 
 import logging
 import time
 from pathlib import Path
+from typing import Generic, cast
 
 import numpy as np
 
-from .answer_cache import AnswerCache
+from .answer_cache import AnswerCache, TupleAnswerT
 from .cache_schema import CacheSchema
 
 logger = logging.getLogger(__name__)
 
 
-class ShardCache(AnswerCache):
+class ShardCache(AnswerCache[TupleAnswerT], Generic[TupleAnswerT]):
     """Accumulates this run's answers."""
 
     def __init__(self, schema: CacheSchema, directory: str | Path,
@@ -31,13 +33,13 @@ class ShardCache(AnswerCache):
         self._flush_every = flush_every
         self._flush_seconds = flush_seconds
         self._width = len(schema.keys)
-        self._live: dict[tuple, tuple] = {}
-        self._pending: list[tuple[tuple, tuple]] = []
+        self._live: dict[tuple, TupleAnswerT] = {}
+        self._pending: list[tuple[tuple, TupleAnswerT]] = []
         self._flushed = time.monotonic()
         self._shard = 0
         self._counters = {"hits": 0, "misses": 0, "writes": 0}
 
-    def lookup(self, key: tuple) -> tuple | None:
+    def lookup(self, key: tuple) -> TupleAnswerT | None:
         """``AnswerCache.lookup``: a key of another width is never held."""
         if len(key) != self._width:
             return None
@@ -45,14 +47,15 @@ class ShardCache(AnswerCache):
         self._counters["hits" if answer is not None else "misses"] += 1
         return answer
 
-    def update(self, key: tuple, answer: tuple) -> bool:
+    def update(self, key: tuple, answer: TupleAnswerT) -> bool:
         """``AnswerCache.update``: keep an answer and queue it for the build."""
         if len(key) != self._width:
             return False
         text, *floats = answer
-        answer = (str(text), *(float(value) for value in floats))
-        self._live[key] = answer
-        self._pending.append((key, answer))
+        # cast: the normalised copy keeps the answer's (text, *floats) shape.
+        kept = cast(TupleAnswerT, (str(text), *(float(value) for value in floats)))
+        self._live[key] = kept
+        self._pending.append((key, kept))
         self._counters["writes"] += 1
         if (len(self._pending) >= self._flush_every
                 or time.monotonic() - self._flushed >= self._flush_seconds):
