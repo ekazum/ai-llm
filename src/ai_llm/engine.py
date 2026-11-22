@@ -25,7 +25,7 @@ class LLMEngine:
 
     def __init__(self, model: str, n_gpus: int = 1,
                  max_model_len: int = 16384,
-                 gpu_mem_util: float = 0.9, n_numbers: int = 2) -> None:
+                 gpu_mem_util: float = 0.9, *, n_numbers: int) -> None:
         """Name the weights, the room they are loaded into, and the numbers
         ``generate`` reads from each answer's logprobs."""
         self._n_numbers = int(n_numbers)

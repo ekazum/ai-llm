@@ -20,6 +20,8 @@ class LLMBaseConfig(YamlConfig):
     LLM_MAX_TOKENS: int = 256
     # Top-k token logprobs per generated token.
     LLM_LOGPROBS_TOPK: int = 20
+    # Numbers the answer ends with, one per line; each gets its logprob value.
+    LLM_N_NUMBERS: int
     # Items a GPU worker accumulates before sorting them into batches.
     LLM_GPU_SORT_WINDOW_SIZE: int = 4096
     # Tokens per model call; batches are cut to stay within it.
@@ -54,7 +56,7 @@ class LLMBaseConfig(YamlConfig):
             raise ValueError("must be a non-empty string")
         return value
 
-    @field_validator("LLM_MAX_TOKENS", "LLM_LOGPROBS_TOPK", "LLM_MAX_MODEL_LEN",
+    @field_validator("LLM_MAX_TOKENS", "LLM_LOGPROBS_TOPK", "LLM_N_NUMBERS", "LLM_MAX_MODEL_LEN",
                      "LLM_GPU_SORT_WINDOW_SIZE", "LLM_MAX_TOKENS_PER_BATCH",
                      "LLM_GPU_MAX_IN_FLIGHT", "LLM_REQUEST_QUEUE_MAXSIZE")
     @classmethod

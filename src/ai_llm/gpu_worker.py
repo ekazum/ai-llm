@@ -22,7 +22,8 @@ class LLMGPUWorker:
         # The generation model, spanning every GPU the job owns.
         self._engine = LLMEngine(config.LLM_MODEL, n_gpus,
                                  config.LLM_MAX_MODEL_LEN,
-                                 config.LLM_GEN_GPU_MEM_UTIL)
+                                 config.LLM_GEN_GPU_MEM_UTIL,
+                                 n_numbers=config.LLM_N_NUMBERS)
         self._stage = GpuBatchStage(
             self, request_queue, shutdown_event,
             window_size=config.LLM_GPU_SORT_WINDOW_SIZE,

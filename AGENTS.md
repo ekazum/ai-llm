@@ -5,7 +5,7 @@ prompts through vLLM, the processor and collector threads between them, an answe
 stores, clients, and a stats store. A project builds a service by subclassing the config, supplying a question and a
 cache, and calling the clients.
 
-Install: `pip install "ai-llm[vllm] @ git+https://github.com/ekazum/ai-llm.git@v0.3.4"` (`[vllm]` only where the
+Install: `pip install "ai-llm[vllm] @ git+https://github.com/ekazum/ai-llm.git@v0.3.5"` (`[vllm]` only where the
 engine runs). Everything below imports from the top level: `from ai_llm import ...`.
 
 ## What ai-llm provides, what the project writes
@@ -70,7 +70,7 @@ LLMServer(...).run()                     # blocks forever; run it on a daemon th
 LLMGPUService(config, host=None, n_gpus=None, server_job=None, port=None)
     .run()                               # load the engine, dial host:gpu_port, serve, redial on loss
     .start() -> (in_queue, out_queue)  .wait_ready(timeout)  .stop()  .dead_threads()
-LLMEngine(model, n_gpus=1, max_model_len=16384, gpu_mem_util=0.9, n_numbers=2)
+LLMEngine(model, n_gpus=1, max_model_len=16384, gpu_mem_util=0.9, *, n_numbers)  # LLMGPUWorker: LLM_N_NUMBERS
     .load() .chat(prompts, max_tokens, temperature=0.0) .token_counts(texts) .generate(token_ids, budgets, temperature, logprobs) .unload()
 LLMBaseClient(config, host, server_job=None)
     .submit_prompt(key, prompt, max_tokens) .receive() -> (key, answer) .poll(timeout) .close()
